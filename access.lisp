@@ -423,7 +423,7 @@
             (gethash skey o)))))
 
   (:method (o  k &key (test (default-test)) (key (default-key))
-                   type skip-call?)
+                   type)
     ;; not specializing on standard-object here
     ;; allows this same code path to work with conditions (in sbcl)
     (let ((actual-slot-name (has-slot? o k)))

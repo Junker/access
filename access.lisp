@@ -397,10 +397,9 @@
     (setf o (call-if-applicable o fn)))
   o)
 
-(defgeneric do-access  (o k &key test key type skip-call?)
+(defgeneric do-access  (o k &key test key type)
   (:method ((o list) k &key (test (default-test)) (key (default-key))
-                       type skip-call?)
-    (declare (ignore skip-call?))
+                         type)
     (if (or (eql type :alist)
             (and (null type) (consp (first o))))
         ;;alist
@@ -410,13 +409,13 @@
         ;;plist
         (plist-val k o :test test :key key)))
 
-  (:method ((o array) k &key type test key skip-call?)
-    (declare (ignore type test key skip-call?))
+  (:method ((o array) k &key type test key)
+    (declare (ignore type test key))
     (when (< k (length o))
       (values (aref o k) t)))
 
-  (:method ((o hash-table) k &key type test key skip-call?)
-    (declare (ignore type test key skip-call?))
+  (:method ((o hash-table) k &key type test key)
+    (declare (ignore type test key))
     (multiple-value-bind (res found) (gethash k o)
       (if found
           (values res found)
@@ -424,7 +423,7 @@
             (gethash skey o)))))
 
   (:method (o  k &key (test (default-test)) (key (default-key))
-                 type skip-call?)
+                   type skip-call?)
     ;; not specializing on standard-object here
     ;; allows this same code path to work with conditions (in sbcl)
     (let ((actual-slot-name (has-slot? o k)))
@@ -439,21 +438,12 @@
          (access o actual-slot-name
                  :test (or test (default-test))
                  :key (or key (default-key))
-                 :type type :skip-call? skip-call?))))))
+                 :type type))))))
 
-(defun access (o k &key type (test (default-test)) (key (default-key))
-                   skip-call?)
+(defun access (o k &key type (test (default-test)) (key (default-key)))
   "Access plists, alists, arrays, hashtables and clos objects
-   all through the same interface
-
-   skip-call, skips trying to call "
-  (multiple-value-bind (res called)
-      (unless skip-call?
-        ;; lets suppress the warning if it is just being called through access
-        (call-if-applicable o k :warn-if-not-a-fn? nil))
-    (if called
-        (values res t)
-        (do-access o k :test test :key key :type type))))
+   all through the same interface"
+  (do-access o k :test test :key key :type type))
 
 (defun %initialize-null-container (k type test)
   (flet ((create-array ()
